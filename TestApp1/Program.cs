@@ -50,6 +50,7 @@ namespace TestApp1
 
             var diff = fullCos.Zip(nativeCos, (f, f1) => f1 != 0.0 ? (f - f1) / f1 : 0.0f).ToArray();
 
+
             queue.Finish();
         }
     }
