@@ -3,10 +3,10 @@
 #define N1 64
 #define N2 16
 #define N3 4
-#define N_S_0 1
+#define NS_0 1
 #define NS_1 4
-#define N_S_2 16
-#define N_S_3 64
+#define NS_2 16
+#define NS_3 64
 #define loc_in_ind_0 16u * 5u * 0u
 #define loc_in_ind_1 16u * 5u * 1u
 #define loc_in_ind_2 16u * 5u * 2u
@@ -47,6 +47,8 @@ inline float2 complex_mult(float2 x, float2 y)
 kernel void fft256(global read_only float2 in[N0], global write_only float2 out[N0]) 
 {
 	size_t j = get_local_id(0);
+
+	//////////    stage 0 ////////////
 	float2 x0 = in[j + 64 * 0];
 	float2 x2 = in[j + 64 * 2];
 	float2 x1 = in[j + 64 * 1];
@@ -98,7 +100,7 @@ kernel void fft256(global read_only float2 in[N0], global write_only float2 out[
 	x3 = (b0 - b1) * complex_mult(twid1, twid2);
 	
 	uint j_lo = j & (NS_1 - 1);
-	loc_out = loc + loc_ind((j_hi << s1 + 2) + j_lo);
+	loc_out = loc + loc_ind((j_hi << (s1 + 2)) + j_lo);
 	stride = loc_ind(NS_1);
 	
 	loc_out[0 * stride] = x0;
@@ -106,4 +108,69 @@ kernel void fft256(global read_only float2 in[N0], global write_only float2 out[
 	loc_out[2 * stride] = x2;
 	loc_out[3 * stride] = x3;
 
+	//////////    stage 2 ////////////
+	x0 = loc_in[loc_in_ind_0];
+	x1 = loc_in[loc_in_ind_1];
+	x2 = loc_in[loc_in_ind_2];
+	x3 = loc_in[loc_in_ind_3];
+
+	a0 = x0 + x2;
+	b0 = x0 - x2;
+	a1 = x1 + x3;
+	b1 = iMult(x1 - x3);
+
+	j_hi = j >> s2;
+
+	twid1 = twiddle(j_hi, N2);
+	twid2 = complex_mult(twid1, twid1);
+
+	x0 = (a0 + a1);
+	x1 = (b0 + b1) * twid1;
+	x2 = (a0 - a1) * twid2;
+	x3 = (b0 - b1) * complex_mult(twid1, twid2);
+	
+	j_lo = j & (NS_2 - 1);
+	loc_out = loc + loc_ind((j_hi << (s2 + 2)) + j_lo);
+	stride = loc_ind(NS_2);
+	
+	loc_out[0 * stride] = x0;
+	loc_out[1 * stride] = x1;
+	loc_out[2 * stride] = x2;
+	loc_out[3 * stride] = x3;
+
+	//////////    stage 3 ////////////
+	x0 = loc_in[loc_in_ind_0];
+	x1 = loc_in[loc_in_ind_1];
+	x2 = loc_in[loc_in_ind_2];
+	x3 = loc_in[loc_in_ind_3];
+
+	a0 = x0 + x2;
+	b0 = x0 - x2;
+	a1 = x1 + x3;
+	b1 = iMult(x1 - x3);
+
+	j_hi = j >> s3;
+
+	twid1 = twiddle(j_hi, N3);
+	twid2 = complex_mult(twid1, twid1);
+
+	x0 = (a0 + a1);
+	x1 = (b0 + b1) * twid1;
+	x2 = (a0 - a1) * twid2;
+	x3 = (b0 - b1) * complex_mult(twid1, twid2);
+	
+/*
+	j_lo = j & (NS_3 - 1);
+	loc_out = loc + loc_ind((j_hi << (s3 + 2)) + j_lo);
+	stride = loc_ind(NS_3);
+	
+	loc_out[0 * stride] = x0;
+	loc_out[1 * stride] = x1;
+	loc_out[2 * stride] = x2;
+	loc_out[3 * stride] = x3;
+*/
+	out[j + N1 * 0] = x0;
+	out[j + N1 * 1] = x1;
+	out[j + N1 * 2] = x2;
+	out[j + N1 * 3] = x3;
 }
