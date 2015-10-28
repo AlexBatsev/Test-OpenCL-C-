@@ -47,14 +47,13 @@ namespace TestApp1
             const int n2 = n * 2;
             var rnd = new Random();
             var x = Enumerable.Range(0, n2).Select(i => (float)((rnd.NextDouble() - 0.5) * 100.0)).ToArray();
-            var yPin = new float[n2];
             var y = new float[n2];
             var inBuffer = new ComputeBuffer<float>(gpu.Context, ComputeMemoryFlags.ReadOnly | ComputeMemoryFlags.UseHostPointer, x);
-            var outBuffer = new ComputeBuffer<float>(gpu.Context, ComputeMemoryFlags.ReadWrite | ComputeMemoryFlags.UseHostPointer, yPin);
+            var outBuffer = new ComputeBuffer<float>(gpu.Context, ComputeMemoryFlags.ReadWrite, y.Length);
             gpu.Queue.WriteToBuffer(x, inBuffer, true, null);
             gpu.Kernel.SetMemoryArgument(0, inBuffer);
             gpu.Kernel.SetMemoryArgument(1, outBuffer);
-            gpu.Queue.Execute(gpu.Kernel, null, new long[] { n }, new long[] { n }, null);
+            gpu.Queue.Execute(gpu.Kernel, null, new long[] { 64 }, new long[] { 64 }, null);
             gpu.Queue.Finish();
             gpu.Queue.ReadFromBuffer(outBuffer, ref y, true, null);
         }
