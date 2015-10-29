@@ -31,6 +31,7 @@ namespace TestApp1
             gpu.Queue.Finish();
             var y1 = new float[y.Length];
             gpu.Queue.ReadFromBuffer(outBuffer, ref y1, true, null);
+
         }
 
         private static void TestNativeCos()

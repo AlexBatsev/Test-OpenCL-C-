@@ -76,9 +76,9 @@ kernel void fft256(global read_only float2 in[N0], global write_only float2 out[
 	loc_out[2 * stride] = x2;
 	loc_out[3 * stride] = x3;
 
-	local float2* loc_in = loc_out;
-
 	//////////    stage 1 ////////////
+	local float2* loc_in = loc + loc_ind(j);
+
 	barrier(CLK_LOCAL_MEM_FENCE);
 	x0 = loc_in[loc_in_ind_0];
 	x1 = loc_in[loc_in_ind_1];
