@@ -62,10 +62,10 @@ kernel void fft256(global read_only float2 in[N0], global write_only float2 out[
 	float2 twid1 = twiddle(j, N0);
 	float2 twid2 = complex_mult(twid1, twid1);
 
-	x0 = (a0 + a1);
-	x1 = (b0 + b1) * twid1;
-	x2 = (a0 - a1) * twid2;
-	x3 = (b0 - b1) * complex_mult(twid1, twid2);
+	x0 = a0 + a1;
+	x1 = complex_mult(b0 + b1, twid1);
+	x2 = complex_mult(a0 - a1, twid2);
+	x3 = complex_mult(b0 - b1, complex_mult(twid1, twid2));
 
 	local float2 loc[N1 * 5];
 
@@ -79,6 +79,7 @@ kernel void fft256(global read_only float2 in[N0], global write_only float2 out[
 	local float2* loc_in = loc_out;
 
 	//////////    stage 1 ////////////
+	barrier(CLK_LOCAL_MEM_FENCE);
 	x0 = loc_in[loc_in_ind_0];
 	x1 = loc_in[loc_in_ind_1];
 	x2 = loc_in[loc_in_ind_2];
@@ -95,9 +96,9 @@ kernel void fft256(global read_only float2 in[N0], global write_only float2 out[
 	twid2 = complex_mult(twid1, twid1);
 
 	x0 = (a0 + a1);
-	x1 = (b0 + b1) * twid1;
-	x2 = (a0 - a1) * twid2;
-	x3 = (b0 - b1) * complex_mult(twid1, twid2);
+	x1 = complex_mult(b0 + b1, twid1);
+	x2 = complex_mult(a0 - a1, twid2);
+	x3 = complex_mult(b0 - b1, complex_mult(twid1, twid2));
 	
 	uint j_lo = j & (NS_1 - 1);
 	loc_out = loc + loc_ind((j_hi << (s1 + 2)) + j_lo);
@@ -109,6 +110,7 @@ kernel void fft256(global read_only float2 in[N0], global write_only float2 out[
 	loc_out[3 * stride] = x3;
 
 	//////////    stage 2 ////////////
+	barrier(CLK_LOCAL_MEM_FENCE);
 	x0 = loc_in[loc_in_ind_0];
 	x1 = loc_in[loc_in_ind_1];
 	x2 = loc_in[loc_in_ind_2];
@@ -125,9 +127,9 @@ kernel void fft256(global read_only float2 in[N0], global write_only float2 out[
 	twid2 = complex_mult(twid1, twid1);
 
 	x0 = (a0 + a1);
-	x1 = (b0 + b1) * twid1;
-	x2 = (a0 - a1) * twid2;
-	x3 = (b0 - b1) * complex_mult(twid1, twid2);
+	x1 = complex_mult(b0 + b1, twid1);
+	x2 = complex_mult(a0 - a1, twid2);
+	x3 = complex_mult(b0 - b1, complex_mult(twid1, twid2));
 	
 	j_lo = j & (NS_2 - 1);
 	loc_out = loc + loc_ind((j_hi << (s2 + 2)) + j_lo);
@@ -139,6 +141,7 @@ kernel void fft256(global read_only float2 in[N0], global write_only float2 out[
 	loc_out[3 * stride] = x3;
 
 	//////////    stage 3 ////////////
+	barrier(CLK_LOCAL_MEM_FENCE);
 	x0 = loc_in[loc_in_ind_0];
 	x1 = loc_in[loc_in_ind_1];
 	x2 = loc_in[loc_in_ind_2];
@@ -155,9 +158,9 @@ kernel void fft256(global read_only float2 in[N0], global write_only float2 out[
 	twid2 = complex_mult(twid1, twid1);
 
 	x0 = (a0 + a1);
-	x1 = (b0 + b1) * twid1;
-	x2 = (a0 - a1) * twid2;
-	x3 = (b0 - b1) * complex_mult(twid1, twid2);
+	x1 = complex_mult(b0 + b1, twid1);
+	x2 = complex_mult(a0 - a1, twid2);
+	x3 = complex_mult(b0 - b1, complex_mult(twid1, twid2));
 	
 /*
 	j_lo = j & (NS_3 - 1);
