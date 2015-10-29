@@ -70,7 +70,7 @@ kernel void fft256(global read_only float2 in[N0], global write_only float2 out[
 	local float2 loc[N1 * 5];
 
 	uint stride = 1u;
-	local float2* loc_out = loc + loc_ind(j) * 5;
+	local float2* loc_out = loc + j * 5;
 	loc_out[0 * stride] = x0;
 	loc_out[1 * stride] = x1;
 	loc_out[2 * stride] = x2;
