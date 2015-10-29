@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using Cloo;
 
@@ -10,19 +11,26 @@ namespace TestApp1
         {
             var gpu = new GpuProgram("fft256.cl", "fft256");
 
-            const int n = 256;
-            const int n2 = n * 2;
-            var rnd = new Random();
-            var x = Enumerable.Range(0, n2).Select(i => (float)((rnd.NextDouble() - 0.5) * 100.0)).ToArray();
-            var y = new float[n2];
-            var inBuffer = new ComputeBuffer<float>(gpu.Context, ComputeMemoryFlags.ReadOnly | ComputeMemoryFlags.UseHostPointer, x);
+            var xy =
+                File.ReadAllText(@"..\..\out.txt")
+                    .Split(new[] {"\n"}, StringSplitOptions.None)
+                    .Where(s => s.Length > 1)
+                    .Select(s => s.Split(new[] {"\t"}, StringSplitOptions.None).Select(float.Parse).ToArray())
+                    .ToArray();
+
+            var x = xy.SelectMany(floats => new[] {floats[0], 0.0f}).ToArray();
+            var y = xy.SelectMany(floats => new[] {floats[1], floats[2]}).ToArray();
+
+            var inBuffer = new ComputeBuffer<float>(gpu.Context,
+                ComputeMemoryFlags.ReadOnly | ComputeMemoryFlags.UseHostPointer, x);
             var outBuffer = new ComputeBuffer<float>(gpu.Context, ComputeMemoryFlags.ReadWrite, y.Length);
             gpu.Queue.WriteToBuffer(x, inBuffer, true, null);
             gpu.Kernel.SetMemoryArgument(0, inBuffer);
             gpu.Kernel.SetMemoryArgument(1, outBuffer);
-            gpu.Queue.Execute(gpu.Kernel, null, new long[] { 64 }, new long[] { 64 }, null);
+            gpu.Queue.Execute(gpu.Kernel, null, new long[] {64}, new long[] {64}, null);
             gpu.Queue.Finish();
-            gpu.Queue.ReadFromBuffer(outBuffer, ref y, true, null);
+            var y1 = new float[y.Length];
+            gpu.Queue.ReadFromBuffer(outBuffer, ref y1, true, null);
         }
 
         private static void TestNativeCos()
