@@ -37,9 +37,9 @@ inline uint loc_ind(uint x)
 }
 
 __attribute__((always_inline))
-inline float2 complex_mult(float2 x, float2 y)
+inline float2 complex_mult(float2 a, float2 b)
 { 
-	return (float2)(x.x * y.x - x.y * y.y, x.y * y.x + x.x * y.y);
+	return (float2)(a.x * b.x - a.y * b.y, a.y * b.x + a.x * b.y);
 }
 
 
@@ -70,6 +70,9 @@ kernel void fft256(global read_only float2 in[N0], global write_only float2 out[
 	local float2 loc[N1 * 5];
 
 	uint stride = 1u;
+
+	uint DBG_loc_ind_0 = loc_ind(j); /////   DEBUG    /////
+
 	local float2* loc_out = loc + loc_ind(j);
 	loc_out[0 * stride] = x0;
 	loc_out[1 * stride] = x1;
