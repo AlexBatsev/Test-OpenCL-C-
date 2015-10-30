@@ -45,6 +45,7 @@
   <ItemGroup>
     <Compile Include="Float2.cs" />
     <Compile Include="GpuProgram.cs" />
+    <Compile Include="MyRand.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

@@ -47,16 +47,20 @@ inline float2 complex_mult(float2 a, float2 b)
 }
 
 
+__attribute__((work_group_size_hint(N3, 1, 1)))
+__attribute__((reqd_work_group_size(N3, 1, 1)))
 
-kernel void fft256(global read_only float2 in[N4], global write_only float2 out[N4]) 
+kernel void fft256(global read_only float2 in[][N4], global write_only float2 out[][N4]) 
 {
 	size_t j = get_local_id(0);
+	uint j_hi = get_global_id(1); //temporary usage of j_hi as "i"
+	local float2 loc[N3 * 5];
 
 	//////////    stage 0 ////////////
-	float2 x0 = in[j + 64 * 0];
-	float2 x2 = in[j + 64 * 2];
-	float2 x1 = in[j + 64 * 1];
-	float2 x3 = in[j + 64 * 3];
+	float2 x0 = in[j_hi][j + 64 * 0];
+	float2 x2 = in[j_hi][j + 64 * 2];
+	float2 x1 = in[j_hi][j + 64 * 1];
+	float2 x3 = in[j_hi][j + 64 * 3];
 
 	float2 a0 = x0 + x2;
 	float2 b0 = x0 - x2;
@@ -70,8 +74,6 @@ kernel void fft256(global read_only float2 in[N4], global write_only float2 out[
 	x1 = complex_mult(b0 + b1, twid1);
 	x2 = complex_mult(a0 - a1, twid2);
 	x3 = complex_mult(b0 - b1, complex_mult(twid1, twid2));
-
-	local float2 loc[N3 * 5];
 
 	local float2* loc_out = loc + j * 5;
 	loc_out[0 * stride0] = x0;
@@ -93,7 +95,7 @@ kernel void fft256(global read_only float2 in[N4], global write_only float2 out[
 	a1 = x1 + x3;
 	b1 = iMult(x1 - x3);
 
-	uint j_hi = j >> s1;
+	j_hi = j >> s1;
 
 	twid1 = twiddle(j_hi, N3);
 	twid2 = complex_mult(twid1, twid1);
@@ -156,8 +158,10 @@ kernel void fft256(global read_only float2 in[N4], global write_only float2 out[
 	x2 = a0 - a1;
 	x3 = b0 - b1;
 
-	out[j + N3 * 0] = x0;
-	out[j + N3 * 1] = x1;
-	out[j + N3 * 2] = x2;
-	out[j + N3 * 3] = x3;
+	j_hi = get_global_id(1); //temporary usage of j_hi as "i"
+
+	out[j_hi][j + N3 * 0] = x0;
+	out[j_hi][j + N3 * 1] = x1;
+	out[j_hi][j + N3 * 2] = x2;
+	out[j_hi][j + N3 * 3] = x3;
 }
