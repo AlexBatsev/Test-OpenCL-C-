@@ -16,7 +16,7 @@ namespace TestApp1
 
         private static void Main()
         {
-            TestFft2D_noTranspose();
+            TestFft2D();
         }
 
         private static void TestFft2D_noTranspose()
