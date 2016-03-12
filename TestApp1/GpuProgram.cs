@@ -21,7 +21,8 @@ namespace TestApp1
             }
             catch (Exception)
             {
-                throw new Exception(program.GetBuildLog(Device));
+                var buildLog = program.GetBuildLog(Device);
+                throw new Exception(buildLog);
             }
             System.Diagnostics.Debug.WriteLine(program.GetBuildLog(Device));
             return program.CreateKernel(kernelName);
@@ -43,6 +44,13 @@ namespace TestApp1
         public ComputeBuffer<Float2> CreateBuffer(long n)
         {
             return new ComputeBuffer<Float2>(Context, ComputeMemoryFlags.ReadWrite, n);
+        }
+
+        public ComputeImage2D CreateImage2D()
+        {
+            return new ComputeImage2D(Context, ComputeMemoryFlags.ReadWrite,
+                new ComputeImageFormat(ComputeImageChannelOrder.RG, ComputeImageChannelType.Float), 256, 256, 0,
+                IntPtr.Zero);
         }
 
         public void Exec1D(ComputeKernel kernel, long global, long local)

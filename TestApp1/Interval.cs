@@ -1,3 +1,5 @@
+using System;
+
 namespace TestApp1
 {
     internal struct Interval
@@ -15,7 +17,7 @@ namespace TestApp1
         public Interval(float x)
         {
             x = ToMainPeriod(x);
-            Index = (int)x;
+            Index = Math.Min((int)x, 255);
             Delta = x - Index;
         }
 

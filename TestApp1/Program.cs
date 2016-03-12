@@ -16,7 +16,18 @@ namespace TestApp1
 
         private static void Main()
         {
-            TestFft2D_no_image();
+            Console.WriteLine("Image:");
+            TestFft2D_speed_image();
+            Console.WriteLine("Buffer:");
+            TestFft2D_speed_no_image();
+            Console.WriteLine("Image:");
+            TestFft2D_speed_image();
+            Console.WriteLine("Buffer:");
+            TestFft2D_speed_no_image();
+            Console.WriteLine("Image:");
+            TestFft2D_speed_image();
+            Console.WriteLine("Buffer:");
+            TestFft2D_speed_no_image();
         }
 
         private static void TestFft2D_noTranspose()
@@ -55,7 +66,7 @@ namespace TestApp1
             var maxDiscrep = discrep.OrderBy(arg => arg.Discrepancy).Last().Discrepancy;
         }
 
-        private static void TestFft2D()
+        private static void TestFft2D_speed_no_image()
         {
             var fft1D = gpu.GetKernel("fft256.cl", "fft256");
             var transpose = gpu.GetKernel("transpose.cl", "transpose");
@@ -93,6 +104,42 @@ namespace TestApp1
         }
 
 
+        private static void TestFft2D_speed_image()
+        {
+            var fft1D = gpu.GetKernel("fft256_image.cl", "fft256");
+            var transpose = gpu.GetKernel("transpose.cl", "transpose_image");
+
+            var x = Generate(n * n);
+            var yExact = Fft2DCpu(x);
+            var length = x.Length;
+
+            var buffer0 = gpu.CreateBuffer(length);
+            var xGpuBuff = gpu.CreateBuffer(length);
+            var yGpuImage = gpu.CreateImage2D();
+
+            gpu.Queue.WriteToBuffer(x, buffer0, true, null);
+            fft1D.SetMemoryArgument(0, xGpuBuff);
+            fft1D.SetMemoryArgument(1, yGpuImage);
+            transpose.SetMemoryArgument(0, yGpuImage);
+            transpose.SetMemoryArgument(1, xGpuBuff);
+
+            var clock = new Stopwatch();
+            clock.Start();
+            for (int i = 0; i < 10000; i++)
+            {
+                gpu.Queue.CopyBuffer(buffer0, xGpuBuff, null);
+                gpu.Exec2D(fft1D, workSize, nRows, workSize, 1);
+                gpu.Exec2D(transpose, n, n, 16, 16);
+                gpu.Exec2D(fft1D, workSize, nRows, workSize, 1);
+            }
+            clock.Stop();
+            Console.WriteLine("Fft time: {0} ms", clock.ElapsedMilliseconds);
+
+            var yGpu = GetResultOfFftFromGpu(yGpuImage);
+            var discrep = CalcDiscrepancy(yExact, yGpu);
+            var maxDiscrep = discrep.OrderBy(arg => arg.Discrepancy).Last().Discrepancy;
+        }
+
         private static Float2 Interpolate2d(Float2[] grid, Float2 position)
         {
             var x = new Interval(position.X);
@@ -107,46 +154,121 @@ namespace TestApp1
             return x.Combine(a0, a1);
         }
 
-        private static void TestFft2D_no_image()
+        private static void TestFft2D_Interpolate()
         {
             var fft1D = gpu.GetKernel("fft256.cl", "fft256");
             var transpose = gpu.GetKernel("transpose.cl", "transpose");
 
             var x = Generate(n * n);
-            var yExact = Fft2DCpu(x);
             var length = x.Length;
 
             var buffer0 = gpu.CreateBuffer(length);
-            var buffer1 = gpu.CreateBuffer(length);
-            var buffer2 = gpu.CreateBuffer(length);
+            var xGpuBuff = gpu.CreateBuffer(length);
+            var uGpuBuff = gpu.CreateBuffer(length);
 
             gpu.Queue.WriteToBuffer(x, buffer0, true, null);
-            fft1D.SetMemoryArgument(0, buffer1);
-            fft1D.SetMemoryArgument(1, buffer2);
-            transpose.SetMemoryArgument(0, buffer2);
-            transpose.SetMemoryArgument(1, buffer1);
+            fft1D.SetMemoryArgument(0, xGpuBuff);
+            fft1D.SetMemoryArgument(1, uGpuBuff);
+            transpose.SetMemoryArgument(0, uGpuBuff);
+            transpose.SetMemoryArgument(1, xGpuBuff);
 
-            gpu.Queue.CopyBuffer(buffer0, buffer1, null);
+            gpu.Queue.CopyBuffer(buffer0, xGpuBuff, null);
             gpu.Exec2D(fft1D, workSize, nRows, workSize, 1);
             gpu.Exec2D(transpose, n, n, 16, 16);
             gpu.Exec2D(fft1D, workSize, nRows, workSize, 1);
 
             var yGpu = new Float2[length];
-            gpu.Queue.ReadFromBuffer(buffer2, ref yGpu, true, null);
+            gpu.Queue.ReadFromBuffer(uGpuBuff, ref yGpu, true, null);
+
+
+
+            var points = Generate(1000, -512.0, 512.0);
+            var offsetsExact = points.Select(point => Interpolate2d(yGpu, point)).ToArray();
+            var offsetsGpu = new Float2[points.Length];
+
+            var interpKrn = gpu.GetKernel("interpolate.cl", "interpolate_no_image");
+            var pointsBuff = gpu.CreateBuffer(points.Length);
+            var offsetsBuff = gpu.CreateBuffer(points.Length);
+            gpu.Queue.WriteToBuffer(points, pointsBuff, true, null);
+            interpKrn.SetMemoryArgument(0, uGpuBuff);
+            interpKrn.SetMemoryArgument(1, pointsBuff);
+            interpKrn.SetMemoryArgument(2, offsetsBuff);
+            interpKrn.SetValueArgument(3, (uint)points.Length);
+            gpu.Exec1D(interpKrn, (points.Length/64 + 1)*64, 64);
+            gpu.Queue.ReadFromBuffer(offsetsBuff, ref offsetsGpu, true, null);
+            var discrepancy = CalcDiscrepancy(offsetsExact, offsetsGpu);
+            var discrepancyMax = discrepancy.OrderBy(arg => arg.Discrepancy).Last().Discrepancy;
+        }
+
+        private static void TestFft2D_image()
+        {
+            var fft1D = gpu.GetKernel("fft256_image.cl", "fft256");
+            var transpose = gpu.GetKernel("transpose.cl", "transpose_image");
+
+            var x = Generate(n * n);
+            var length = x.Length;
+
+            var buffer0 = gpu.CreateBuffer(length);
+            var xGpuBuff = gpu.CreateBuffer(length);
+            var yGpuImage = gpu.CreateImage2D();
+
+            gpu.Queue.WriteToBuffer(x, buffer0, true, null);
+            fft1D.SetMemoryArgument(0, xGpuBuff);
+            fft1D.SetMemoryArgument(1, yGpuImage);
+            transpose.SetMemoryArgument(0, yGpuImage);
+            transpose.SetMemoryArgument(1, xGpuBuff);
+
+            gpu.Queue.CopyBuffer(buffer0, xGpuBuff, null);
+            gpu.Exec2D(fft1D, workSize, nRows, workSize, 1);
+            gpu.Exec2D(transpose, n, n, 16, 16);
+            gpu.Exec2D(fft1D, workSize, nRows, workSize, 1);
+
+            var yGpu = GetResultOfFftFromGpu(yGpuImage);
+
+            var yExact = Fft2DCpu(x);
             var discrep = CalcDiscrepancy(yExact, yGpu);
             var maxDiscrep = discrep.OrderBy(arg => arg.Discrepancy).Last().Discrepancy;
 
 
 
-            var val00 = Interpolate2d(yExact, new Float2(0.0f, 0.0f)) - yExact[0];
-            var val01 = Interpolate2d(yExact, new Float2(0.0f, 0.9999f)) - yExact[1];
-            var val10 = Interpolate2d(yExact, new Float2(0.9999f, 0.0f)) - yExact[1 * n + 0];
-            var val11 = Interpolate2d(yExact, new Float2(0.9999f, 0.9999f)) - yExact[1 * n + 1];
+            /*
+                        var points = Generate(1000, -512.0, 512.0);
+                        var offsetsExact = points.Select(point => Interpolate2d(yGpu, point)).ToArray();
+                        var offsetsGpu = new Float2[points.Length];
+
+                        var interpKrn = gpu.GetKernel("interpolate.cl", "interpolate_no_image");
+                        var pointsBuff = gpu.CreateBuffer(points.Length);
+                        var offsetsBuff = gpu.CreateBuffer(points.Length);
+                        gpu.Queue.WriteToBuffer(points, pointsBuff, true, null);
+                        interpKrn.SetMemoryArgument(0, yGpuImage);
+                        interpKrn.SetMemoryArgument(1, pointsBuff);
+                        interpKrn.SetMemoryArgument(2, offsetsBuff);
+                        interpKrn.SetValueArgument(3, (uint)points.Length);
+                        gpu.Exec1D(interpKrn, (points.Length / 64 + 1) * 64, 64);
+                        gpu.Queue.ReadFromBuffer(offsetsBuff, ref offsetsGpu, true, null);
+                        var discrepancy = CalcDiscrepancy(offsetsExact, offsetsGpu);
+                        var discrepancyMax = discrepancy.OrderBy(arg => arg.Discrepancy).Last().Discrepancy;
+            */
         }
 
-        private static Float2[] Generate(uint nElms)
+        private static Float2[] GetResultOfFftFromGpu(ComputeImage2D yGpuImage)
         {
-            return new MyRand(-100.0, 100.0).GetNext(nElms, 2).Select(d => new Float2(d[0], d[1])).ToArray();
+            const int length = n*n;
+            var yGpu = new Float2[length];
+            {
+                var tmpBuff = gpu.CreateBuffer(length);
+                var imageToBuffKrn = gpu.GetKernel("transpose.cl", "image_to_buffer");
+                imageToBuffKrn.SetMemoryArgument(0, yGpuImage);
+                imageToBuffKrn.SetMemoryArgument(1, tmpBuff);
+                gpu.Exec2D(imageToBuffKrn, n, n, 16, 16);
+                gpu.Queue.ReadFromBuffer(tmpBuff, ref yGpu, true, null);
+            }
+            return yGpu;
+        }
+
+        private static Float2[] Generate(uint nElms, double begin = -100.0, double end = 100.0)
+        {
+            return new MyRand(begin, end).GetNext(nElms, 2).Select(d => new Float2(d[0], d[1])).ToArray();
         }
 
         private static void TestTranspose()
@@ -271,18 +393,5 @@ namespace TestApp1
             return result;
         }
 
-        private class Float2Diff
-        {
-            public readonly double Discrepancy;
-            public Float2 First;
-            public Float2 Second;
-
-            public Float2Diff(Float2 first, Float2 second)
-            {
-                First = first;
-                Second = second;
-                Discrepancy = second.Module != 0.0f ? ((first - second) / second).Module : 0.0;
-            }
-        }
     }
 }

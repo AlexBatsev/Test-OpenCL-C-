@@ -18,8 +18,8 @@ inline void getIndices(global read_only float2* points, InterpData out[2])
 	float2 fInd = points[get_global_id(0)];
 	int2 i = convert_int2_rtn(fInd);
 	float2 t = fInd - convert_float2(i);
-	out[0] = (InterpData){ i.x & N_GRID_NODES_MINUS_1, t.x };
-	out[1] = (InterpData){ i.y & N_GRID_NODES_MINUS_1, t.y };
+	out[0] = (InterpData) { i.x & N_GRID_NODES_MINUS_1, t.x };
+	out[1] = (InterpData) { i.y & N_GRID_NODES_MINUS_1, t.y };
 }
 
 
