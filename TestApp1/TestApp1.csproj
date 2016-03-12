@@ -45,6 +45,7 @@
   <ItemGroup>
     <Compile Include="Float2.cs" />
     <Compile Include="GpuProgram.cs" />
+    <Compile Include="Interval.cs" />
     <Compile Include="MyRand.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -55,6 +56,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="CL\fft256_and_transpose.cl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="CL\interpolate.cl">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="CL\kernel1.cl">
