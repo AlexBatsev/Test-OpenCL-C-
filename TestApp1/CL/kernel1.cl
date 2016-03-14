@@ -5,7 +5,7 @@ kernel void testCosinus(global write_only float* fullCos, global write_only floa
 	nativeCos[get_global_id(0)] = native_cos(angle);
 }
 
-kernel void testNormalize(global read_write float2* data)
+kernel void testNormalize(global float2* data)
 {
 	float2 d = data[get_global_id(0)];
 	d = normalize(d);

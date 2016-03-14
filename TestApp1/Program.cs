@@ -21,7 +21,7 @@ namespace TestApp1
 
             var data = new[]
             {
-                new Float2(10.0f), new Float2(10.0f, 10.0f), new Float2(0.0f, 10.0f), new Float2(0.0f), new Float2(0.000001f), 
+                new Float2(-10.0f), new Float2(10.0f, 10.0f), new Float2(0.0f, 10.0f), new Float2(0.0f), new Float2(0.0f, -0.000001f), 
             };
 
             var buff = gpu.CreateBuffer(data.Length);
