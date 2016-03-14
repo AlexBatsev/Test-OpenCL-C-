@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Configuration;
 using Cloo;
 
 namespace TestApp1
@@ -15,6 +16,22 @@ namespace TestApp1
         private static readonly GpuProgram gpu = new GpuProgram();
 
         private static void Main()
+        {
+            var normalizeKrn = gpu.GetKernel("kernel1.cl", "testNormalize");
+
+            var data = new[]
+            {
+                new Float2(10.0f), new Float2(10.0f, 10.0f), new Float2(0.0f, 10.0f), new Float2(0.0f), new Float2(0.000001f), 
+            };
+
+            var buff = gpu.CreateBuffer(data.Length);
+            gpu.Queue.WriteToBuffer(data, buff, true, null);
+            normalizeKrn.SetMemoryArgument(0, buff);
+            gpu.Exec1D(normalizeKrn, data.Length, data.Length);
+            gpu.Queue.ReadFromBuffer(buff, ref data, true, null);
+        }
+
+        private static void TestImageVsBuffer()
         {
             Console.WriteLine("Image:");
             TestFft2D_speed_image();
