@@ -17,11 +17,17 @@ namespace TestApp1
 
         private static void Main()
         {
+            TestFft2D_speed_no_image();
+        }
+
+        private static void TestNormalization()
+        {
             var normalizeKrn = gpu.GetKernel("kernel1.cl", "testNormalize");
 
             var data = new[]
             {
-                new Float2(-10.0f), new Float2(10.0f, 10.0f), new Float2(0.0f, 10.0f), new Float2(0.0f), new Float2(0.0f, -0.000001f), 
+                new Float2(-10.0f), new Float2(10.0f, 10.0f), new Float2(0.0f, 10.0f), new Float2(0.0f),
+                new Float2(0.0f, -0.000001f),
             };
 
             var buff = gpu.CreateBuffer(data.Length);
@@ -103,16 +109,20 @@ namespace TestApp1
             transpose.SetMemoryArgument(1, buffer1);
 
             var clock = new Stopwatch();
+            const int nTimeSteps = 10000;
             clock.Start();
-            for (int i = 0; i < 10000; i++)
+            for (int i = 0; i < nTimeSteps; i++)
             {
                 gpu.Queue.CopyBuffer(buffer0, buffer1, null);
                 gpu.Exec2D(fft1D, workSize, nRows, workSize, 1);
                 gpu.Exec2D(transpose, n, n, 16, 16);
                 gpu.Exec2D(fft1D, workSize, nRows, workSize, 1);
+                //gpu.Queue.Finish();
             }
             clock.Stop();
-            Console.WriteLine("Fft time: {0} ms", clock.ElapsedMilliseconds);
+            var elapsedMilliseconds = clock.ElapsedMilliseconds;
+            Console.WriteLine("Total Fft time: {0} ms", elapsedMilliseconds);
+            Console.WriteLine("Time of 1 Fft : {0} ms", (double)elapsedMilliseconds / nTimeSteps);
 
             var yGpu = new Float2[length];
             gpu.Queue.ReadFromBuffer(buffer2, ref yGpu, true, null);
