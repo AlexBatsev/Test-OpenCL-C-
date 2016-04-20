@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -113,10 +115,11 @@ namespace TestApp1
             clock.Start();
             for (int i = 0; i < nTimeSteps; i++)
             {
-                gpu.Queue.CopyBuffer(buffer0, buffer1, null);
-                gpu.Exec2D(fft1D, workSize, nRows, workSize, 1);
-                gpu.Exec2D(transpose, n, n, 16, 16);
-                gpu.Exec2D(fft1D, workSize, nRows, workSize, 1);
+                List<ComputeEventBase> events = /*new List<ComputeEventBase>()*/ null;
+                gpu.Queue.CopyBuffer(buffer0, buffer1, events);
+                gpu.Exec2D(fft1D, workSize, nRows, workSize, 1, events);
+                gpu.Exec2D(transpose, n, n, 16, 16, events);
+                gpu.Exec2D(fft1D, workSize, nRows, workSize, 1, events);
                 gpu.Queue.Finish();
             }
             clock.Stop();

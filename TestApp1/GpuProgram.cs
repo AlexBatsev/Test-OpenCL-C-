@@ -37,7 +37,7 @@ namespace TestApp1
                 return;
             Context = new ComputeContext(new List<ComputeDevice> {Device},
                 new ComputeContextPropertyList(Device.Platform), null, IntPtr.Zero);
-            Queue = new ComputeCommandQueue(Context, Device, ComputeCommandQueueFlags.None);
+            Queue = new ComputeCommandQueue(Context, Device, ComputeCommandQueueFlags.OutOfOrderExecution);
         }
 
 
@@ -61,6 +61,11 @@ namespace TestApp1
         public void Exec2D(ComputeKernel kernel, long global1, long global2, long local1, long local2)
         {
             Queue.Execute(kernel, null, new[] { global1, global2 }, new[] { local1, local2 }, null);
+        }
+
+        public void Exec2D(ComputeKernel kernel, long global1, long global2, long local1, long local2, ICollection<ComputeEventBase> events)
+        {
+            Queue.Execute(kernel, null, new[] { global1, global2 }, new[] { local1, local2 }, events);
         }
     }
 }
