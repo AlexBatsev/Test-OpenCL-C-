@@ -113,14 +113,16 @@ namespace TestApp1
             var clock = new Stopwatch();
             const int nTimeSteps = 10000;
             clock.Start();
+            List<ComputeEventBase> events = new List<ComputeEventBase>(4) /*null*/;
             for (int i = 0; i < nTimeSteps; i++)
             {
-                List<ComputeEventBase> events = /*new List<ComputeEventBase>()*/ null;
+                //List<ComputeEventBase> events = /*new List<ComputeEventBase>(4)*/ null;
                 gpu.Queue.CopyBuffer(buffer0, buffer1, events);
                 gpu.Exec2D(fft1D, workSize, nRows, workSize, 1, events);
                 gpu.Exec2D(transpose, n, n, 16, 16, events);
                 gpu.Exec2D(fft1D, workSize, nRows, workSize, 1, events);
                 gpu.Queue.Finish();
+                events.Clear();
             }
             clock.Stop();
             var elapsedMilliseconds = clock.ElapsedMilliseconds;
